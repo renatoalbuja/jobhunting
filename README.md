@@ -1,2 +1,3 @@
 # jobhunting
-app that tailor resume
+Need gemini API to target resume. 
+Just add and star tailoring resume.
