@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResumeTailor AI - ATS-Proof Resume Tailoring Agent</title>
+    <meta name="description" content="Tailor your resume to any job description instantly. Optimize for ATS scanners, enforce STAR methodology, and keep a natural human tone.">
+    <!-- Google Fonts for the Dashboard UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for beautiful icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js for parsing PDF uploads client-side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+</head>
+<body>
+    <!-- Dashboard UI Layout (Hidden during printing) -->
+    <div class="dashboard-wrapper" id="dashboard-wrapper">
+        <!-- Sidebar Navigation / Logo -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>Resume<span>Tailor</span></h1>
+                    <p class="tagline">ATS-Proof Agent v2.0</p>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" id="nav-tailor"><i class="fa-solid fa-wand-magic-sparkles"></i> Tailoring Studio</a>
+                <a href="#" class="nav-item" id="nav-guide"><i class="fa-solid fa-circle-info"></i> ATS Handbook</a>
+            </nav>
+
+            <div class="api-key-panel">
+                <div class="panel-header">
+                    <label for="api-key"><i class="fa-solid fa-key"></i> Gemini API Key</label>
+                    <span class="status-indicator disconnected" id="api-status"><i class="fa-solid fa-circle"></i> Offline</span>
+                </div>
+                <div class="input-with-icon">
+                    <input type="password" id="api-key" placeholder="Enter Gemini API Key..." autocomplete="off">
+                    <button id="toggle-api-visibility" title="Toggle visibility"><i class="fa-solid fa-eye"></i></button>
+                </div>
+                <p class="api-tip">Stored locally in your browser.</p>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Designed for human-centric applications & elite recruiter appeal.</p>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Workspace -->
+        <main class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-bar">
+                <div class="welcome">
+                    <h2>Tailoring Studio</h2>
+                    <p>Adapt your professional profile to secure more interviews</p>
+                </div>
+                <div class="quick-actions">
+                    <button class="btn btn-secondary" id="btn-load-demo"><i class="fa-solid fa-database"></i> Load Demo Data</button>
+                    <button class="btn btn-secondary" id="btn-clear"><i class="fa-solid fa-trash-can"></i> Clear All</button>
+                </div>
+            </header>
+
+            <!-- Dashboard Content Panels -->
+            <div class="content-grid" id="panel-studio">
+                <!-- Left Panel: Input Fields -->
+                <section class="panel input-section">
+                    <div class="panel-title">
+                        <h3><i class="fa-solid fa-file-lines"></i> Input Materials</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="resume-input">Your Current Resume</label>
+                            <div class="upload-actions">
+                                <label for="pdf-upload" class="pdf-upload-btn" id="pdf-upload-label" title="Upload PDF resume">
+                                    <i class="fa-solid fa-file-upload"></i> Upload PDF
+                                </label>
+                                <input type="file" id="pdf-upload" accept=".pdf" style="display: none;">
+                                <span class="word-counter" id="resume-count">0 characters</span>
+                            </div>
+                        </div>
+                        <textarea id="resume-input" placeholder="Paste or upload your current resume in plain text, Markdown, or PDF format..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="job-desc-input">Target Job Description</label>
+                            <span class="word-counter" id="job-desc-count">0 characters</span>
+                        </div>
+                        <textarea id="job-desc-input" placeholder="Paste the job description of the position you want to target..."></textarea>
+                    </div>
+
+                    <div class="settings-card">
+                        <h4>Tailoring Parameters</h4>
+                        <div class="settings-grid">
+                            <div class="form-group">
+                                <label for="select-font">Resume Font (ATS-Proof)</label>
+                                <select id="select-font">
+                                    <option value="Gill Sans MT" selected>Gill Sans MT (Recommended - Clean & Professional)</option>
+                                    <option value="Arial">Arial (Modern & Clean)</option>
+                                    <option value="Calibri">Calibri (Elegant & Standard)</option>
+                                    <option value="Times New Roman">Times New Roman (Traditional & Editorial)</option>
+                                    <option value="Georgia">Georgia (Premium Serif)</option>
+                                </select>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label class="switch">
+                                    <input type="checkbox" id="checkbox-enforce-star" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                                <span class="checkbox-label">Strict PAR Format (Metrics)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-block btn-large" id="btn-tailor">
+                        <span id="btn-tailor-text"><i class="fa-solid fa-wand-magic-sparkles"></i> Optimize & Tailor Resume</span>
+                        <div class="spinner hidden" id="tailor-spinner"></div>
+                    </button>
+                </section>
+
+                <!-- Right Panel: Results & Editing -->
+                <section class="panel output-section">
+                    <div class="output-header-tabs">
+                        <div class="tabs">
+                            <button class="tab-btn active" data-tab="preview"><i class="fa-solid fa-file-pdf"></i> ATS Resume Preview</button>
+                            <button class="tab-btn" data-tab="markdown"><i class="fa-solid fa-code"></i> Markdown Source</button>
+                            <button class="tab-btn" data-tab="checklist"><i class="fa-solid fa-list-check"></i> ATS Audit & Keywords</button>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-secondary btn-small" id="btn-docx" disabled><i class="fa-solid fa-file-word"></i> Download DOC</button>
+                            <button class="btn btn-success btn-small" id="btn-print" disabled><i class="fa-solid fa-download"></i> Save as PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab Contents -->
+                    <div class="tab-content active" id="tab-preview">
+                        <div class="preview-container">
+                            <div class="empty-state" id="preview-empty">
+                                <div class="empty-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                                <h4>No Tailored Resume Yet</h4>
+                                <p>Provide your API key, current resume, and target job description, then click "Optimize & Tailor Resume" to generate your ATS-proof resume.</p>
+                            </div>
+                            
+                            <!-- This is the live rendered resume preview styled for print/ATS -->
+                            <div class="resume-sheet hidden" id="resume-sheet">
+                                <!-- Rendered resume content will go here and is editable -->
+                                <div id="rendered-resume" contenteditable="true" class="resume-editable"></div>
+                            </div>
+                        </div>
+                        <div class="edit-banner hidden" id="edit-banner">
+                            <i class="fa-solid fa-pen-to-square"></i> Click anywhere on the resume to edit. Changes will reflect in PDF print.
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-markdown">
+                        <div class="markdown-editor-wrapper">
+                            <textarea id="markdown-output" readonly placeholder="Markdown representation will appear here..."></textarea>
+                            <button class="btn btn-secondary btn-small copy-btn" id="btn-copy-md"><i class="fa-solid fa-copy"></i> Copy Markdown</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-checklist">
+                        <div class="checklist-container">
+
+                            <!-- Row 1: Two score cards side by side -->
+                            <div class="score-cards-row">
+                                <!-- ATS Compatibility Score -->
+                                <div class="score-card">
+                                    <div class="score-ring">
+                                        <svg>
+                                            <circle cx="50" cy="50" r="45"></circle>
+                                            <circle cx="50" cy="50" r="45" id="score-progress"></circle>
+                                        </svg>
+                                        <div class="score-number" id="score-text">0%</div>
+                                    </div>
+                                    <div class="score-details">
+                                        <h4>ATS Compatibility Score</h4>
+                                        <p id="score-summary">Generate a resume to run analysis.</p>
+                                    </div>
+                                </div>
+
+                                <!-- AI Detection Risk Score -->
+                                <div class="score-card risk-card">
+                                    <div class="score-ring risk-ring">
+                                        <svg>
+                                            <circle cx="50" cy="50" r="45"></circle>
+                                            <circle cx="50" cy="50" r="45" id="ai-risk-progress"></circle>
+                                        </svg>
+                                        <div class="score-number" id="ai-risk-score">0%</div>
+                                    </div>
+                                    <div class="score-details">
+                                        <h4>AI Detection Risk</h4>
+                                        <span class="risk-label" id="ai-risk-label">Not yet analyzed</span>
+                                        <p id="ai-risk-summary">Generate a resume to assess AI detectability.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="audit-lists">
+                                <!-- Matched Keywords -->
+                                <div class="audit-group">
+                                    <h5><i class="fa-solid fa-circle-check text-success"></i> Hard Skills &amp; Keywords Match</h5>
+                                    <div class="keyword-tags" id="matched-keywords">
+                                        <p class="empty-msg">No keyword analysis available.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Missing Keywords -->
+                                <div class="audit-group">
+                                    <h5><i class="fa-solid fa-circle-exclamation text-warning"></i> Missing Target Keywords</h5>
+                                    <div class="keyword-tags" id="missing-keywords">
+                                        <p class="empty-msg">No keyword analysis available.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Structural Checks -->
+                                <div class="audit-group">
+                                    <h5><i class="fa-solid fa-square-poll-horizontal"></i> Structural &amp; Format Checks</h5>
+                                    <ul class="checklist-items" id="structural-checks">
+                                        <li class="unchecked"><i class="fa-solid fa-circle-notch"></i> Single-column layout (no tables/sidebars)</li>
+                                        <li class="unchecked"><i class="fa-solid fa-circle-notch"></i> Web-safe ATS font selected</li>
+                                        <li class="unchecked"><i class="fa-solid fa-circle-notch"></i> STAR bullet format with metrics</li>
+                                        <li class="unchecked"><i class="fa-solid fa-circle-notch"></i> Summary: 3-4 lines, no hollow adjectives</li>
+                                        <li class="unchecked"><i class="fa-solid fa-circle-notch"></i> ATS-safe characters only</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Humanization Changes Log -->
+                                <div class="audit-group">
+                                    <h5><i class="fa-solid fa-pen-nib"></i> Humanization Pass — Changes Made</h5>
+                                    <ul class="checklist-items" id="humanization-changes">
+                                        <li class="unchecked"><i class="fa-solid fa-circle-notch"></i> No humanization log yet.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Advisor Notes — Estimated / Credible Statements -->
+                                <div class="audit-group advisor-group">
+                                    <h5><i class="fa-solid fa-lightbulb text-warning"></i> Advisor Notes — Estimated Statements</h5>
+                                    <p class="advisor-intro">The following statements were <strong>crafted by the AI career advisor</strong> when verifiable metrics were unavailable. They are plausible and industry-standard — but <strong>review each one</strong> and replace with your real data before submitting.</p>
+                                    <div id="advisor-notes-list">
+                                        <p class="empty-msg">No advisor notes yet. Generate a resume to see estimated statements.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Guide Panel (ATS Handbook) -->
+            <div class="panel hidden" id="panel-guide">
+                <div class="panel-header-simple">
+                    <h3><i class="fa-solid fa-circle-info"></i> ATS & Resume Tailoring Handbook</h3>
+                    <button class="btn btn-secondary btn-small" id="btn-back-studio"><i class="fa-solid fa-arrow-left"></i> Back to Studio</button>
+                </div>
+                <div class="guide-content">
+                    <div class="guide-section">
+                        <h4>Why ATS-Proofing Matters</h4>
+                        <p>Over 98% of Fortune 500 companies use Applicant Tracking Systems (ATS) to filter resumes before a human recruiter ever sees them. Resumes that are poorly formatted, use complex designs, or miss key keywords are rejected automatically.</p>
+                    </div>
+
+                    <div class="guide-grid">
+                        <div class="guide-card">
+                            <h5><i class="fa-solid fa-font"></i> Font & Styling Rules</h5>
+                            <ul>
+                                <li><strong>Use Standard Fonts:</strong> Arial, Calibri, Times New Roman, Garamond, and Georgia are widely supported. Avoid custom downloaded web fonts.</li>
+                                <li><strong>No Text Inside Boxes:</strong> Don't place text in graphical shapes or custom borders; ATS cannot read them.</li>
+                                <li><strong>Keep Font Sizes Readable:</strong> 10-12pt for body text, 14-16pt for section headers, 20-24pt for your name.</li>
+                            </ul>
+                        </div>
+
+                        <div class="guide-card">
+                            <h5><i class="fa-solid fa-table-cells-large"></i> Format Restrictions</h5>
+                            <ul>
+                                <li><strong>Single Column:</strong> ATS parses left-to-right. Multi-column templates often result in merged text (e.g. reading experience side-by-side with education).</li>
+                                <li><strong>No Tables or Charts:</strong> ATS frequently strips tables or reads content out of order. Avoid grids or visual skill bars.</li>
+                                <li><strong>Standard Headers:</strong> Use "Professional Experience", "Education", "Skills", "Summary". Don't use creative headers like "My Professional Path" or "Things I'm Good At".</li>
+                            </ul>
+                        </div>
+
+                        <div class="guide-card">
+                            <h5><i class="fa-solid fa-crosshairs"></i> The STAR Methodology</h5>
+                            <p>For each bullet point in your Experience, use the STAR format to prove your capabilities:</p>
+                            <ul>
+                                <li><strong>S/T (Situation/Task):</strong> What challenge or project did you tackle?</li>
+                                <li><strong>A (Action):</strong> What did YOU do specifically? (Start with a strong verb).</li>
+                                <li><strong>R (Result):</strong> What was the outcome, backed by <strong>tangible numbers</strong>?</li>
+                            </ul>
+                            <p class="example-quote"><em>Example: "Boosted team productivity by 25% (Result) by implementing an automated linting and CI/CD workflow (Action) that reduced PR review times (Situation/Task)."</em></p>
+                        </div>
+
+                        <div class="guide-card">
+                            <h5><i class="fa-solid fa-brain"></i> Keeping a Human Tone</h5>
+                            <ul>
+                                <li><strong>Avoid AI Clichés:</strong> Overused LLM words like <em>spearheaded, revolutionized, synergy, pioneered</em> trigger recruiter skepticism.</li>
+                                <li><strong>Be Direct:</strong> Write active sentences. Say "Reduced database query time..." instead of "I was responsible for optimizing database queries..."</li>
+                                <li><strong>Customize Metrics:</strong> AI will generate placeholders (e.g., `[X]%`). Replace these with your actual metrics before saving!</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ATS Resume Print Container (Strictly styled for printing, hidden on screen) -->
+    <div id="ats-print-container" class="resume-sheet ats-print-only">
+        <!-- Rendered resume injected here during print trigger -->
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
